@@ -42,6 +42,6 @@ Dependencies
 
 Links
 -------
-[google-speech-v2](https://github.com/gillesdemey/google-speech-v2) - Unofficial Google STT API "documentation"
-[Chromium Developers](http://www.chromium.org/developers/how-tos/api-keys) - Get your own Google Speech API key
-[ZeroKidz](http://zerokidz.com/ideas/?p=11035) - If you don't want to get your own key, maybe you'll find an active one here
+[google-speech-v2](https://github.com/gillesdemey/google-speech-v2) - Unofficial Google STT API "documentation"  
+[Chromium Developers](http://www.chromium.org/developers/how-tos/api-keys) - Get your own Google Speech API key  
+[ZeroKidz](http://zerokidz.com/ideas/?p=11035) - If you don't want to get your own key, maybe you'll find an active one here  
