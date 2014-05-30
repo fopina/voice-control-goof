@@ -1,0 +1,7 @@
+# Obtaining your own API key:
+# http://www.chromium.org/developers/how-tos/api-keys
+
+# random API key from http://zerokidz.com/ideas/?p=11035 to skip these steps (no idea if still valid)
+API_KEY = 'AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw'
+
+DEFAULT_LOCALE = 'en-US'
