@@ -1,3 +1,5 @@
+# coding=UTF-8
+
 from sys import byteorder
 from array import array
 from struct import pack
@@ -5,7 +7,7 @@ from struct import pack
 import pyaudio
 import wave
 import os
-import urllib2
+import urllib,urllib2
 import json
 import sys
 import tempfile
@@ -14,6 +16,10 @@ import tempfile
 # https://github.com/gillesdemey/google-speech-v2
 
 class SKSTT(object):
+
+	STATUS_LISTENING = 1
+	STATUS_UPLOADING = 2
+
 	# google speech v2 api endpoint
 	GOOGLE_SPEECH_URL = 'https://www.google.com/speech-api/v2/recognize?output=json&lang=%s&key=%s'
 
@@ -155,7 +161,7 @@ class SKSTT(object):
 		#Convert to flac first
 		filename = audio_fname
 		del_flac = False
-		if 'flac' not in filename:
+		if '.flac' not in filename:
 			del_flac = True
 			os.system(self.FLAC_CONV + ' ' + filename + ' 2>/dev/null')
 			filename = filename.split('.')[0] + '.flac'
@@ -182,11 +188,12 @@ class SKSTT(object):
 					if res.get('result_index') != None:
 						for re in res['result'][res['result_index']]['alternative']:
 							alts.append(re)
-			res = alts            
+			res = alts
+		except KeyboardInterrupt:
+			raise            
 		except:
 			print "Couldn't parse service response"
 			print "Unexpected error:", sys.exc_info()[0]
-			raise
 			res = None
 
 		if del_flac:
@@ -195,8 +202,43 @@ class SKSTT(object):
 		return res
 
 	def listen_and_return(self, callback = None):
-		_,filename = tempfile.mkstemp()
+		fd,filename = tempfile.mkstemp(suffix = '.wav')
+		if callback : callback(self.STATUS_LISTENING)
 		self.record_to_file(filename)
+		if callback : callback(self.STATUS_UPLOADING)
 		results = self.stt_google_wav(filename)
+		os.close(fd)
 		os.remove(filename)
 		return results
+
+class SKTTS(object):
+	# google speech v2 api endpoint
+	GOOGLE_TRANSLATE_URL = 'http://translate.google.com/translate_tts?tl=%s&q=%s'
+	# using sox on OSX, replace with your own
+	MP3_PLAY = 'play -q'
+
+	def __init__(self, lang_code):
+		self.lang_code = lang_code
+
+	def read_out_loud(self, text):
+		hrs = {
+			"User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16.0.912.63 Safari/535.7"
+		}
+
+		req = urllib2.Request(self.GOOGLE_TRANSLATE_URL %  (self.lang_code, urllib.quote_plus(text)), headers=hrs)
+		
+		try:
+			p = urllib2.urlopen(req)
+			fd,filename = tempfile.mkstemp(suffix = '.mp3')
+			outfd = os.fdopen(fd,'wb')
+			outfd.write(p.read())
+			outfd.close()
+			os.system(self.MP3_PLAY + ' ' + filename)
+			os.remove(filename)
+		except KeyboardInterrupt:
+			raise
+		except:
+			print "Couldn't parse service response"
+			print "Unexpected error:", sys.exc_info()[0]
+			raise
+			res = None
