@@ -25,30 +25,38 @@ def choose_guess(guesses):
 	return winner.encode('utf-8')
 
 def update_status(status):
-	if status == SKSTT.STATUS_LISTENING:
+	if status == SKSTT.STATUS_WAITING:
 		print "please speak into the microphone"
-	elif status == SKSTT.STATUS_UPLOADING:
+	elif status == SKSTT.STATUS_LISTENING:
+		print "Listening..."
+	elif status == SKSTT.STATUS_PROCESSING:
 		print "speech to text..."
 
 def main():
-	stt = SKSTT(DEFAULT_LOCALE, API_KEY)
+	stt = SKSTT(DEFAULT_LOCALE, API_KEY, callback = update_status)
 	tts = SKTTS(DEFAULT_LOCALE)
+	print 'Please, allow 10 seconds of silence to calibrate....'
+	silence = stt.calculate_silence()
+	stt.THRESHOLD = silence
+	print "Silence threshold set to:", silence
 	try:
 		while 1:
-			guesses = stt.listen_and_return(callback = update_status)
+			guesses = stt.listen_and_return()
+			reply = None
 			if guesses:
 				print_guesses(guesses)
 				print
 				choice = choose_guess(guesses)
 				print 'Winner:',choice
-				print
-				print 'text to speech...'
-				tts.read_out_loud(choice)
+				reply = choice
 			else:
 				if DEFAULT_LOCALE[:2] == 'pt':
-					tts.read_out_loud('Não percebi, repete por favor.')
+					reply = 'Não percebi, repete por favor.'
 				else:
-					tts.read_out_loud('I did not understand, please repeat.')
+					reply = 'I did not understand, please repeat.'
+			print
+			print 'text to speech...'
+			tts.read_out_loud(reply)
 	except KeyboardInterrupt:
 		print
 		print 'Bye Bye'

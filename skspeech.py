@@ -17,8 +17,9 @@ import tempfile
 
 class SKSTT(object):
 
-	STATUS_LISTENING = 1
-	STATUS_UPLOADING = 2
+	STATUS_WAITING = 1
+	STATUS_LISTENING = 2
+	STATUS_PROCESSING = 3
 
 	# google speech v2 api endpoint
 	GOOGLE_SPEECH_URL = 'https://www.google.com/speech-api/v2/recognize?output=json&lang=%s&key=%s'
@@ -27,16 +28,17 @@ class SKSTT(object):
 						   # on Linux
 
 	# pyaudio record settings
-	THRESHOLD = 3000
+	THRESHOLD = 500
 	CHUNK_SIZE = 1024
 	FORMAT = pyaudio.paInt16
 	RATE = 44100
 
 	SILENCE_STOP = 40
 
-	def __init__(self, lang_code, api_key):
+	def __init__(self, lang_code, api_key, callback = None):
 		self.lang_code = lang_code  # Language to use
 		self.api_key = api_key
+		self.statuscb = callback
 
 
 	# pieces of code obtained over daWEB
@@ -87,6 +89,30 @@ class SKSTT(object):
 		r.extend([0 for i in xrange(int(seconds*self.RATE))])
 		return r
 
+	def calculate_silence(self, seconds = 10):
+		p = pyaudio.PyAudio()
+		stream = p.open(format=self.FORMAT,
+			channels=1,
+			rate=self.RATE,
+			input=True,
+			frames_per_buffer=self.CHUNK_SIZE)
+
+		r = array('h')
+
+		maxes = []
+		for i in xrange(int(self.RATE/self.CHUNK_SIZE * seconds)):
+			snd_data = array('h', stream.read(self.CHUNK_SIZE))
+			if byteorder == 'big':
+				snd_data.byteswap()
+			r.extend(snd_data)
+			maxes.append(max(snd_data))
+
+		stream.stop_stream()
+		stream.close()
+		p.terminate()
+
+		return max(maxes)
+
 	def record(self):
 		"""
 		Record a word or words from the microphone and 
@@ -125,6 +151,7 @@ class SKSTT(object):
 					num_silent = 0
 			else:
 				if not silent:
+					self.notify_status(self.STATUS_LISTENING)
 					snd_started = True
 
 			if snd_started and num_silent > self.SILENCE_STOP:
@@ -201,15 +228,19 @@ class SKSTT(object):
 
 		return res
 
-	def listen_and_return(self, callback = None):
+	def listen_and_return(self):
 		fd,filename = tempfile.mkstemp(suffix = '.wav')
-		if callback : callback(self.STATUS_LISTENING)
+		self.notify_status(self.STATUS_WAITING)
 		self.record_to_file(filename)
-		if callback : callback(self.STATUS_UPLOADING)
+		self.notify_status(self.STATUS_PROCESSING)
 		results = self.stt_google_wav(filename)
 		os.close(fd)
 		os.remove(filename)
 		return results
+
+	def notify_status(self, status):
+		if not self.statuscb : return
+		self.statuscb(status)
 
 class SKTTS(object):
 	# google speech v2 api endpoint
