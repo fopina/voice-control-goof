@@ -1,7 +1,30 @@
+########################################################################
+# Google API                                                           #
+########################################################################
+
 # Obtaining your own API key:
 # http://www.chromium.org/developers/how-tos/api-keys
 
 # random API key from http://zerokidz.com/ideas/?p=11035 to skip these steps (no idea if still valid)
 API_KEY = 'AIzaSyBOti4mM-6x9WDnZIjIeyEU21OpBXqWBgw'
 
+# locale configuration used for Google Speech and Google TTS APIs
 DEFAULT_LOCALE = 'en-US'
+
+########################################################################
+# pocketsphinx                                                         #
+# language model and dictionary fine-tuned for a specific trigger word #
+########################################################################
+
+# the default pocketsphinx en_US accoustic model
+SPHINX_HMM = '/usr/local/Cellar/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k/'
+
+# for quick usage, you can always use JASPER "persona"
+# http://jasperproject.github.io/
+# https://github.com/jasperproject/jasper-client/blob/master/client/languagemodel_persona.lm
+# https://github.com/jasperproject/jasper-client/blob/master/client/dictionary_persona.dic
+
+SPHINX_LM = 'languagemodel_persona.lm'
+SPHINX_DIC = 'dictionary_persona.dic'
+SPHINX_TRIGGER = 'JASPER'
+

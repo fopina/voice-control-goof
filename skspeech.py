@@ -12,117 +12,132 @@ import json
 import sys
 import tempfile
 
+# stupid bug
+try:
+	import pocketsphinx
+except:
+	import pocketsphinx
+
 # Reference for API:
 # https://github.com/gillesdemey/google-speech-v2
 
+# callback status
+STATUS_WAITING = 1
+STATUS_LISTENING = 2
+STATUS_PROCESSING = 3
+
 class SKSTT(object):
-
-	STATUS_WAITING = 1
-	STATUS_LISTENING = 2
-	STATUS_PROCESSING = 3
-
 	# google speech v2 api endpoint
 	GOOGLE_SPEECH_URL = 'https://www.google.com/speech-api/v2/recognize?output=json&lang=%s&key=%s'
 
 	FLAC_CONV = 'flac -f'  # We need a WAV to FLAC converter. flac is available
 						   # on Linux
 
+	SOX_CONV = 'sox %s -b 16 %s rate 16k'
+
 	# pyaudio record settings
 	THRESHOLD = 500
 	CHUNK_SIZE = 1024
 	FORMAT = pyaudio.paInt16
 	RATE = 44100
+	SILENCE_STOP = 20
 
-	SILENCE_STOP = 40
-
-	def __init__(self, lang_code, api_key, callback = None):
+	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None):
 		self.lang_code = lang_code  # Language to use
 		self.api_key = api_key
 		self.statuscb = callback
 
+		fd, wavfile = tempfile.mkstemp(suffix = '.wav')
+		os.close(fd)
+		self._wavfile = wavfile
+		self._flacfile = wavfile + '.flac'
+		self._ratefile = wavfile + '.16k.wav'
 
-	# pieces of code obtained over daWEB
-	# credits to unknown group of people
-
-	def is_silent(self, snd_data):
-		"Returns 'True' if below the 'silent' threshold"
-		return max(snd_data) < self.THRESHOLD
-
-	def normalize(self, snd_data):
-		"Average the volume out"
-		MAXIMUM = 16384
-		times = float(MAXIMUM)/max(abs(i) for i in snd_data)
-
-		r = array('h')
-		for i in snd_data:
-			r.append(int(i*times))
-		return r
-
-	def trim(self, snd_data):
-		"Trim the blank spots at the start and end"
-		def _trim(snd_data):
-			snd_started = False
-			r = array('h')
-
-			for i in snd_data:
-				if not snd_started and abs(i)>self.THRESHOLD:
-					snd_started = True
-					r.append(i)
-
-				elif snd_started:
-					r.append(i)
-			return r
-
-		# Trim to the left
-		snd_data = _trim(snd_data)
-
-		# Trim to the right
-		snd_data.reverse()
-		snd_data = _trim(snd_data)
-		snd_data.reverse()
-		return snd_data
-
-	def add_silence(self, snd_data, seconds):
-		"Add silence to the start and end of 'snd_data' of length 'seconds' (float)"
-		r = array('h', [0 for i in xrange(int(seconds*self.RATE))])
-		r.extend(snd_data)
-		r.extend([0 for i in xrange(int(seconds*self.RATE))])
-		return r
+		if sphinx_lm and sphinx_hmm and sphinx_dic:
+			self.sphinx_rec = pocketsphinx.Decoder(hmm=sphinx_hmm, lm=sphinx_lm, dict=sphinx_dic, logfn = '/dev/null')
+		else:
+			self.sphinx_rec = None
 
 	def calculate_silence(self, seconds = 10):
-		p = pyaudio.PyAudio()
-		stream = p.open(format=self.FORMAT,
-			channels=1,
-			rate=self.RATE,
-			input=True,
-			frames_per_buffer=self.CHUNK_SIZE)
+			p = pyaudio.PyAudio()
+			stream = p.open(format=self.FORMAT,
+				channels=1,
+				rate=self.RATE,
+				input=True,
+				frames_per_buffer=self.CHUNK_SIZE)
 
-		r = array('h')
+			r = array('h')
 
-		maxes = []
-		for i in xrange(int(self.RATE/self.CHUNK_SIZE * seconds)):
-			snd_data = array('h', stream.read(self.CHUNK_SIZE))
-			if byteorder == 'big':
-				snd_data.byteswap()
-			r.extend(snd_data)
-			maxes.append(max(snd_data))
+			maxes = []
+			for i in xrange(int(self.RATE/self.CHUNK_SIZE * seconds)):
+				snd_data = array('h', stream.read(self.CHUNK_SIZE))
+				if byteorder == 'big':
+					snd_data.byteswap()
+				r.extend(snd_data)
+				maxes.append(max(snd_data))
 
-		stream.stop_stream()
-		stream.close()
-		p.terminate()
+			stream.stop_stream()
+			stream.close()
+			p.terminate()
 
-		return max(maxes)
+			return max(maxes)
 
-	def record(self):
+	def record(self, trim = True, normalize = True, pad_silence = 0.0):
 		"""
-		Record a word or words from the microphone and 
+		Record audio from the microphone and
 		return the data as an array of signed shorts.
 
+		Optionally:
 		Normalizes the audio, trims silence from the 
 		start and end, and pads with 0.5 seconds of 
 		blank sound to make sure VLC et al can play 
 		it without getting chopped off.
 		"""
+		def _is_silent(snd_data, threshold):
+			"Returns 'True' if below the 'silent' threshold"
+			return max(snd_data) < threshold
+
+		def _normalize(snd_data):
+			"Average the volume out"
+			MAXIMUM = 16384
+			times = float(MAXIMUM)/max(abs(i) for i in snd_data)
+
+			r = array('h')
+			for i in snd_data:
+				r.append(int(i*times))
+			return r
+
+		def _trim(snd_data, threshold):
+			"Trim the blank spots at the start and end"
+			def __trim(snd_data):
+				snd_started = False
+				r = array('h')
+
+				for i in snd_data:
+					if not snd_started and abs(i)>threshold:
+						snd_started = True
+						r.append(i)
+
+					elif snd_started:
+						r.append(i)
+				return r
+
+			# Trim to the left
+			snd_data = __trim(snd_data)
+
+			# Trim to the right
+			snd_data.reverse()
+			snd_data = __trim(snd_data)
+			snd_data.reverse()
+			return snd_data
+
+		def _add_silence(snd_data, seconds, rate):
+			"Add silence to the start and end of 'snd_data' of length 'seconds' (float)"
+			r = array('h', [0 for i in xrange(int(seconds*rate))])
+			r.extend(snd_data)
+			r.extend([0 for i in xrange(int(seconds*rate))])
+			return r
+		
 		p = pyaudio.PyAudio()
 		stream = p.open(format=self.FORMAT,
 			channels=1,
@@ -142,7 +157,7 @@ class SKSTT(object):
 				snd_data.byteswap()
 			r.extend(snd_data)
 
-			silent = self.is_silent(snd_data)
+			silent = _is_silent(snd_data, self.THRESHOLD)
 
 			if snd_started:
 				if silent:
@@ -151,7 +166,7 @@ class SKSTT(object):
 					num_silent = 0
 			else:
 				if not silent:
-					self.notify_status(self.STATUS_LISTENING)
+					self.notify_status(STATUS_LISTENING)
 					snd_started = True
 
 			if snd_started and num_silent > self.SILENCE_STOP:
@@ -162,13 +177,15 @@ class SKSTT(object):
 		stream.close()
 		p.terminate()
 
-		r = self.normalize(r)
-		r = self.trim(r)
-		r = self.add_silence(r, 0.5)
+		if normalize : r = _normalize(r)
+		if trim : r = _trim(r, self.THRESHOLD)
+		if pad_silence : r = _add_silence(r, pad_silence, self.RATE)
 		return sample_width, r
 
 	def record_to_file(self,path):
-		"Records from the microphone and outputs the resulting data to 'path'"
+		"""
+		Records from the microphone and outputs the resulting data to 'path'
+		"""
 		sample_width, data = self.record()
 		data = pack('<' + ('h'*len(data)), *data)
 
@@ -179,19 +196,27 @@ class SKSTT(object):
 		wf.writeframes(data)
 		wf.close()
 
-	def stt_google_wav(self, audio_fname):
-		""" Sends audio file (audio_fname) to Google's text to speech 
-			service and returns service's response. We need a FLAC 
-			converter if audio is not FLAC (check FLAC_CONV). """
+	def stt_google(self, audio_fname):
+		"""
+		Sends audio file (audio_fname) to Google's text to speech 
+		service and returns service's response.
+		FLAC converter is required because audio is not FLAC
+		(configure FLAC_CONV).
+		"""
+		def _choose_guess(guesses):
+			winner = None
+			maxconf = -1
+			for guess in guesses:
+				conf = float(guess.get('confidence',0))
+				if conf > maxconf:
+					winner = guess['transcript']
+					maxconf = conf
+			if winner : winner = winner.encode('utf-8')
+			return winner
 
-		#print "Sending", audio_fname
-		#Convert to flac first
-		filename = audio_fname
-		del_flac = False
-		if '.flac' not in filename:
-			del_flac = True
-			os.system(self.FLAC_CONV + ' ' + filename + ' 2>/dev/null')
-			filename = filename.split('.')[0] + '.flac'
+		if os.system('%s -o %s %s 2>/dev/null' % (self.FLAC_CONV, self._flacfile, audio_fname)):
+			raise Exception('%s -o %s %s 2>/dev/null' % (self.FLAC_CONV, self._flacfile, audio_fname))
+		filename = self._flacfile
 
 		f = open(filename, 'rb')
 		flac_cont = f.read()
@@ -202,7 +227,6 @@ class SKSTT(object):
 			   'Content-type': 'audio/x-flac; rate=%s' % self.RATE}
 
 		req = urllib2.Request(self.GOOGLE_SPEECH_URL %  (self.lang_code, self.api_key), data=flac_cont, headers=hrs)
-		#print "Sending request to Google TTS"
 		
 		try:
 			p = urllib2.urlopen(req)
@@ -223,24 +247,48 @@ class SKSTT(object):
 			print "Unexpected error:", sys.exc_info()[0]
 			res = None
 
-		if del_flac:
-			os.remove(filename)  # Remove temp file
+		return _choose_guess(res)
 
-		return res
+	def stt_sphinx(self, filename):
+		if not self.sphinx_rec:
+			raise Exception('pocketsphinx not initialized')
 
-	def listen_and_return(self):
-		fd,filename = tempfile.mkstemp(suffix = '.wav')
-		self.notify_status(self.STATUS_WAITING)
-		self.record_to_file(filename)
-		self.notify_status(self.STATUS_PROCESSING)
-		results = self.stt_google_wav(filename)
-		os.close(fd)
-		os.remove(filename)
+		if self.RATE not in (8000,16000):
+			if os.system(self.SOX_CONV % (filename, self._ratefile)):
+				raise Exception(self.SOX_CONV % (filename, self._ratefile))
+			filename = self._ratefile
+
+		wavFile = file(filename, 'rb')
+
+		self.sphinx_rec.decode_raw(wavFile)
+		result = self.sphinx_rec.get_hyp()
+
+		return result[0]
+
+	def listen(self, use_google = False):
+		self.notify_status(STATUS_WAITING)
+		self.record_to_file(self._wavfile)
+		self.notify_status(STATUS_PROCESSING)
+		if use_google:
+			results = self.stt_google(self._wavfile)
+		else:
+			results = self.stt_sphinx(self._wavfile)
 		return results
 
 	def notify_status(self, status):
 		if not self.statuscb : return
 		self.statuscb(status)
+
+	def cleanup(self):
+		def _silentremove(filename):
+		    try:
+		        os.remove(filename)
+		    except OSError:
+		    	pass
+
+		_silentremove(self._wavfile)
+		_silentremove(self._flacfile)
+		_silentremove(self._ratefile)
 
 class SKTTS(object):
 	# google speech v2 api endpoint
