@@ -291,12 +291,6 @@ class STT(object):
 		self.statuscb(status, val)
 
 	def __del__(self):
-		def _silentremove(filename):
-			try:
-				os.remove(filename)
-			except OSError:
-				pass
-
 		_silentremove(self._wavfile)
 		_silentremove(self._flacfile)
 		_silentremove(self._ratefile)
@@ -359,17 +353,16 @@ class TTS(object):
 			print "Unexpected error:", sys.exc_info()[0]
 			os.system(self.BACKUPPLAY + ' error in text to speech')
 
-	def __del__(self):
-		def _silentremove(filename):
-			try:
-				os.remove(filename)
-			except OSError:
-				pass
-
-		_silentremove(self._mp3file)
-
+	
+	def clean_cache(self):
 		for filename in self._cachedMP3.values():
 			_silentremove(filename)
+
+		self._cachedMP3 = {}
+
+	def __del__(self):
+		_silentremove(self._mp3file)
+		self.clean_cache()
 
 class Conversation(object):
 	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None):
@@ -410,7 +403,13 @@ class ConversationWithoutAudio(Conversation):
 		return raw_input()
 
 	def say(self, text, use_cache = False):
-		return text
+		print text
 
 	def calculate_silence(self, seconds = 5):
 		return 0
+
+def _silentremove(filename):
+			try:
+				os.remove(filename)
+			except OSError:
+				pass

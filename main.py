@@ -28,6 +28,10 @@ def main():
 	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
 	brain = Brain(conversation, MODULES)
 
+	print 'Modules loaded:'
+	for m in brain.modules:
+		print m.__name__
+
 	print
 	print 'Please, allow 2 seconds of silence to calibrate....'
 	silence = conversation.calculate_silence(2)
@@ -41,7 +45,7 @@ def main():
 			if reply.find(SPHINX_TRIGGER) < 0:
 				continue
 			
-			if DEFAULT_LOCALE[:2] == 'pt':
+			if conversation.lang_code[:2] == 'pt':
 				reply = 'Sim?'
 			else:
 				reply = 'Yes?'
@@ -52,7 +56,7 @@ def main():
 			reply = conversation.listen(use_google = True)
 			
 			if not reply:
-				if DEFAULT_LOCALE[:2] == 'pt':
+				if conversation.lang_code[:2] == 'pt':
 					reply = 'Quê?'
 				else:
 					reply = 'What?'

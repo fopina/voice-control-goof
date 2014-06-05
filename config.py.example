@@ -32,4 +32,4 @@ SPHINX_TRIGGER = 'JASPER'
 # Brain modules                                                        #
 ########################################################################
 
-MODULES = [ 'weatherpt' ]
+MODULES = [ 'weatherpt', 'lang_change' ]

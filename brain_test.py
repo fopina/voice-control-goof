@@ -26,12 +26,10 @@ def main():
 		print input
 	else:
 		input = conversation.listen()
-	output = conversation.say(brain.process(input))
 	print 'Output:',
+	output = brain.process(input)
 	if output:
 		print output
-	else:
-		print '(none)'
 
 if __name__ == '__main__':
 	main()
