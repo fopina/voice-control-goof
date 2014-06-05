@@ -15,9 +15,16 @@ Quickstart (OSX)
 		brew install flac
 		brew install cmu-pocketsphinx
 
-- Install PyAudio
+- If it's the first time you install a brew package that includes a python module, be sure to follow the warning that brew showed when installing cmu-pocketsphinx
 
-		pip install PyAudio
+		If you need Python to find the installed site-packages:
+		mkdir -p ~/Library/Python/2.7/lib/python/site-packages
+		echo '/usr/local/lib/python2.7/site-packages' > ~/Library/Python/2.7/lib/python/site-packages/homebrew.pth
+
+- Install pip and PyAudio
+
+		sudo easy_install pip
+		sudo pip install --allow-external PyAudio --allow-unverified PyAudio PyAudio
 
 - Clone this
 
