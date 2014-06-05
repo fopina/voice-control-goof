@@ -1,7 +1,7 @@
 # coding=UTF-8
 
-from skspeech import SKSTT, SKTTS
-from skspeech import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING
+from voicecontrol.ttsstt import Conversation
+from voicecontrol.ttsstt import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING
 try:
 	from config import API_KEY, DEFAULT_LOCALE
 	from config import SPHINX_LM, SPHINX_DIC, SPHINX_HMM, SPHINX_TRIGGER
@@ -18,19 +18,17 @@ def update_status(status):
 		print "speech to text..."
 
 def main():
-	stt = SKSTT(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
-	tts = SKTTS(DEFAULT_LOCALE)
+	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
 
 	print
 	print 'Please, allow 2 seconds of silence to calibrate....'
-	silence = stt.calculate_silence(2)
-	stt.THRESHOLD = silence
+	silence = conversation.calculate_silence(2)
 	print "Silence threshold set to:", silence
 	print
 
 	try:
 		while 1:
-			reply = stt.listen()
+			reply = conversation.listen()
 			print 'You said:',reply
 			if reply.find(SPHINX_TRIGGER) < 0:
 				continue
@@ -40,9 +38,9 @@ def main():
 			else:
 				reply = 'Yes?'
 
-			tts.read_out_loud(reply)
+			conversation.say(reply)
 
-			reply = stt.listen(use_google = True)
+			reply = conversation.listen(use_google = True)
 			
 			if not reply:
 				if DEFAULT_LOCALE[:2] == 'pt':
@@ -53,10 +51,9 @@ def main():
 			print
 			print 'text to speech...'
 			print 'Reply:', reply
-			tts.read_out_loud(reply)
+			conversation.say(reply)
 
 	except KeyboardInterrupt:
-		stt.cleanup()
 		print
 		print 'Bye Bye'
 
