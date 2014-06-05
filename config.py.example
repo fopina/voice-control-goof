@@ -28,3 +28,8 @@ SPHINX_LM = 'languagemodel_persona.lm'
 SPHINX_DIC = 'dictionary_persona.dic'
 SPHINX_TRIGGER = 'JASPER'
 
+########################################################################
+# Brain modules                                                        #
+########################################################################
+
+MODULES = [ 'weatherpt' ]

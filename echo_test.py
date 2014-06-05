@@ -1,7 +1,7 @@
 # coding=UTF-8
 
-from skspeech import SKSTT, SKTTS
-from skspeech import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING
+from voicecontrol.ttsstt import Conversation
+from voicecontrol.ttsstt import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING
 try:
 	from config import API_KEY, DEFAULT_LOCALE
 except:
@@ -17,16 +17,14 @@ def update_status(status):
 		print "speech to text..."
 
 def main():
-	stt = SKSTT(DEFAULT_LOCALE, API_KEY, callback = update_status)
-	tts = SKTTS(DEFAULT_LOCALE)
+	conversation = Conversation(DEFAULT_LOCALE, API_KEY, callback = update_status)
 	print 'Please, allow 5 seconds of silence to calibrate....'
-	silence = stt.calculate_silence(5)
-	stt.THRESHOLD = silence
+	silence = conversation.calculate_silence(5)
 	print "Silence threshold set to:", silence
 	print
 	try:
 		while 1:
-			reply = stt.listen(use_google = True)
+			reply = conversation.listen()
 
 			if not reply:
 				if DEFAULT_LOCALE[:2] == 'pt':
@@ -36,7 +34,7 @@ def main():
 			print
 			print 'text to speech...'
 			print 'Reply:', reply
-			tts.read_out_loud(reply)
+			conversation.say(reply)
 	except KeyboardInterrupt:
 		print
 		print 'Bye Bye'
