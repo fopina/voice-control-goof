@@ -2,7 +2,7 @@
 
 from voicecontrol.brain import Brain
 from voicecontrol.ttsstt import ConversationWithoutAudio
-import sys
+
 try:
 	from config import DEFAULT_LOCALE
 	from config import SPHINX_LM, SPHINX_DIC, SPHINX_HMM, SPHINX_TRIGGER
