@@ -10,11 +10,13 @@ Quickstart (OSX)
 
 - Install [sox](http://sox.sourceforge.net/))
 
+	
 	brew install sox
+
 
 - Install [portaudio](http://www.portaudio.com)
 
-	brew install portaudio
+		brew install portaudio
 
 - Install PyAudio
 
