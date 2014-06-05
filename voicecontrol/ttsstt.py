@@ -314,9 +314,22 @@ class TTS(object):
 		fd, mp3file = tempfile.mkstemp(suffix = '.mp3')
 		os.close(fd)
 		self._mp3file = mp3file
+		self._cachedMP3 = {}
 
 
-	def read_out_loud(self, text):
+	def read_out_loud(self, text, use_cache = False):
+		'''
+		This will use Google for text-to-speech.
+
+		If use_cache is True, TTS will checked _cachedSounds to see if it already
+		translated this string to MP3 and avoid hitting Google servers.
+		If it's not cached, it will cache it after.
+		'''
+
+		if use_cache and (text in self._cachedMP3):
+			os.system(self.MP3_PLAY + ' ' + self._cachedMP3[text])
+			return
+
 		hrs = {
 			"User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16.0.912.63 Safari/535.7"
 		}
@@ -325,10 +338,20 @@ class TTS(object):
 		
 		try:
 			p = urllib2.urlopen(req)
-			outfd = open(self._mp3file,'wb')
-			outfd.write(p.read())
+			sound_data = p.read()
+
+			filename = self._mp3file
+
+			if use_cache:
+				fd, cachefile = tempfile.mkstemp(suffix = '.mp3')
+				os.close(fd)
+				filename = cachefile
+				self._cachedMP3[text] = cachefile
+
+			outfd = open(filename,'wb')
+			outfd.write(sound_data)
 			outfd.close()
-			os.system(self.MP3_PLAY + ' ' + self._mp3file)
+			os.system(self.MP3_PLAY + ' ' + filename)
 		except KeyboardInterrupt:
 			raise
 		except:
@@ -344,6 +367,9 @@ class TTS(object):
 				pass
 
 		_silentremove(self._mp3file)
+
+		for filename in self._cachedMP3.values():
+			_silentremove(filename)
 
 class Conversation(object):
 	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None):
@@ -372,9 +398,9 @@ class Conversation(object):
 		self._stt.notify_status(STATUS_LISTENED, val)
 		return val
 
-	def say(self, text):
+	def say(self, text, use_cache = False):
 		self._stt.notify_status(STATUS_SAID, text)
-		self._tts.read_out_loud(text)
+		self._tts.read_out_loud(text, use_cache)
 
 	def calculate_silence(self, seconds = 5):
 		return self._stt.calculate_silence(seconds)
@@ -383,7 +409,7 @@ class ConversationWithoutAudio(Conversation):
 	def listen(self, use_google = False):
 		return raw_input()
 
-	def say(self, text):
+	def say(self, text, use_cache = False):
 		return text
 
 	def calculate_silence(self, seconds = 5):

@@ -46,7 +46,7 @@ def main():
 			else:
 				reply = 'Yes?'
 
-			conversation.say(reply)
+			conversation.say(reply, use_cache = True)
 
 			print
 			reply = conversation.listen(use_google = True)
@@ -57,7 +57,7 @@ def main():
 				else:
 					reply = 'What?'
 
-				conversation.say(reply)
+				conversation.say(reply, use_cache = True)
 				continue
 
 			reply = brain.process(reply)

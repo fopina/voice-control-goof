@@ -24,17 +24,19 @@ def main():
 			else:
 				reply = 'Yes?'
 
-			conversation.say(reply)
+			conversation.say(reply, use_cache = True)
 
 			reply = conversation.listen(use_google = True)
 			
 			if not reply:
 				if DEFAULT_LOCALE[:2] == 'pt':
-					reply = 'Não percebi, repete por favor.'
+					reply = 'Quê?'
 				else:
-					reply = 'I did not understand, please repeat.'
+					reply = 'What?'
+				conversation.say(reply, use_cache = True)
+			else:
+				conversation.say(reply)
 
-			conversation.say(reply)
 	except KeyboardInterrupt:
 		print
 		print 'Bye Bye'

@@ -37,11 +37,12 @@ def main():
 
 			if not reply:
 				if DEFAULT_LOCALE[:2] == 'pt':
-					reply = 'Não percebi, repete por favor.'
+					reply = 'Quê?'
 				else:
-					reply = 'I did not understand, please repeat.'
-			
-			conversation.say(reply)
+					reply = 'What?'
+				conversation.say(reply, use_cache = True)
+			else:
+				conversation.say(reply)
 	except KeyboardInterrupt:
 		print
 		print 'Bye Bye'
