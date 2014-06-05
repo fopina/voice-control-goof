@@ -8,6 +8,8 @@ Quickstart (OSX)
 
 - Install [Homebrew](http://brew.sh)
 
+		ruby -e "$(curl -fsSL https://raw.github.com/Homebrew/homebrew/go/install)"
+
 - Install [sox](http://sox.sourceforge.net/), [portaudio](http://www.portaudio.com), [flac](http://xiph.org/flac/) and [pocketsphinx](http://cmusphinx.sourceforge.net)
 
 		brew install sox
@@ -36,6 +38,8 @@ Quickstart (OSX)
 		cp config.py.example config.py
 		curl -O https://raw.githubusercontent.com/jasperproject/jasper-client/master/client/languagemodel_persona.lm
 		curl -O https://raw.githubusercontent.com/jasperproject/jasper-client/master/client/dictionary_persona.dic
+
+- Optionally, [get your own Google Speech API key](http://www.chromium.org/developers/how-tos/api-keys) and update config.py
 
 - Goof!
 
