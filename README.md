@@ -8,7 +8,7 @@ Quickstart (OSX)
 
 - Install [Homebrew](http://brew.sh)
 
-- Install [sox](http://sox.sourceforge.net/))
+- Install [sox](http://sox.sourceforge.net/)
 
 		brew install sox
 
@@ -21,7 +21,7 @@ Quickstart (OSX)
 
 		pip install PyAudio
 
-- Install [flac](http://xiph.org/flac/))  
+- Install [flac](http://xiph.org/flac/)
 
 		brew install flac
 
