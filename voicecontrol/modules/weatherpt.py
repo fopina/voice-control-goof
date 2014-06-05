@@ -2,6 +2,7 @@
 
 import urllib,urllib2
 import json
+from datetime import datetime
 
 WEATHER_CODES = {
 	200: 'trovoada com chuva ligeira',
@@ -80,15 +81,74 @@ WEATHER_CODES = {
 	962: 'furacão'
 }
 
-def valid_input(input):
-	return 'tempo' in input
+def add_day(day_name, days):
+	return (day_name, days)
 
-def process_input(input):
-	wdata = check_weather('Porto','PT')
-	result = 'Temperatura de %d graus.' % wdata['main']['temp']
+def week_day(day_name, weekday):
+	current_weekday = datetime.now().isoweekday()
+	diff = (weekday - 1 - current_weekday) % 7 + 1
+
+	if weekday == 1:
+		next_name = 'próximo ' + day_name
+	else:
+		next_name = 'próxima ' + day_name
+
+	return (next_name, diff)
+
+named_days = {
+	('amanhã', add_day, 1),
+	('domingo', week_day, 1),
+	('segunda', week_day, 2),
+	('terça', week_day, 3),
+	('quarta', week_day, 4),
+	('quinta', week_day, 5),
+	('sexta', week_day, 6),
+	('sábado', week_day, 7),
+}
+
+def valid_input(conversation, input):
+	if 'tempo' in input : return True
+	if 'temperatura' in input : return True
+	return False
+
+def process_input(conversation, input):
+	future_day = 0
+	temp_current = None
+	day = None
+
+	for day_name, day_meth, day_value in named_days:
+		if day_name in input:
+			day, future_day = day_meth(day_name, day_value)
+
+	if not day:
+		day = 'hoje'
+
+	if 'depois' in input:
+		future_day += 1
+		day = 'depois de ' + day
+
+	if future_day:
+		wdata = check_forecast('Porto', 'PT', future_day + 1)['list'][-1]
+		temp_min = wdata['temp']['min']
+		temp_max = wdata['temp']['max']
+		condition = wdata['weather']
+	else:
+		wdata = check_weather('Porto', 'PT')
+		temp_current = wdata['main']['temp']
+		temp_min = wdata['main']['temp_min']
+		temp_max = wdata['main']['temp_max']
+		condition = wdata['weather']
+		
+	result = ''
+
+	if temp_current:
+		result += 'Temperatura actual de %s graus.' % temp_current
+
+	result += 'Prevê-se para %s temperatura mínima de %s e máxima de %s.' % (day, temp_min, temp_max)
+
 	desc = []
-	if 'weather' in wdata:
-		for entry in wdata['weather']:
+	if condition:
+		for entry in condition:
 			if entry['id'] in WEATHER_CODES:
 				desc.append(WEATHER_CODES[entry['id']])
 
@@ -99,6 +159,12 @@ def process_input(input):
 
 def check_weather(city, country, units = 'metric'):
 	url = 'http://api.openweathermap.org/data/2.5/weather?q=%s,%s&units=%s' % (city, country, units)
+	req = urllib2.Request(url)
+	data = json.loads(urllib2.urlopen(req).read())
+	return data
+
+def check_forecast(city, country, future_days, units = 'metric'):
+	url = 'http://api.openweathermap.org/data/2.5/forecast/daily?q=%s,%s&units=%s&cnt=%d' % (city, country, units, future_days)
 	req = urllib2.Request(url)
 	data = json.loads(urllib2.urlopen(req).read())
 	return data

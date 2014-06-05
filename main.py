@@ -58,6 +58,13 @@ def main():
 					reply = 'What?'
 
 			reply = brain.process(reply)
+
+			if not reply:
+				if DEFAULT_LOCALE[:2] == 'pt':
+					reply = 'Desculpa'
+				else:
+					reply = 'Sorry'
+
 			print
 			print 'text to speech...'
 			print 'Reply:', reply

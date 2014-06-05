@@ -2,6 +2,7 @@
 
 from voicecontrol.brain import Brain
 from voicecontrol.ttsstt import ConversationWithoutAudio
+import sys
 
 try:
 	from config import DEFAULT_LOCALE
@@ -20,7 +21,11 @@ def main():
 
 	print
 	print 'Input: ',
-	input = conversation.listen()
+	if len(sys.argv) > 1:
+		input = ' '.join(sys.argv[1:])
+		print input
+	else:
+		input = conversation.listen()
 	output = conversation.say(brain.process(input))
 	print 'Output:',
 	if output:

@@ -304,6 +304,8 @@ class TTS(object):
 	GOOGLE_TRANSLATE_URL = 'http://translate.google.com/translate_tts?tl=%s&q=%s'
 	# using sox on OSX, replace with your own
 	MP3_PLAY = 'play -q'
+	# using 'say' as it's part of OSX, change to 'espeak' in Linux, for instance
+	BACKUPPLAY = 'say'
 
 	def __init__(self, lang_code):
 		self.lang_code = lang_code
@@ -330,7 +332,7 @@ class TTS(object):
 		except:
 			print "Couldn't parse service response"
 			print "Unexpected error:", sys.exc_info()[0]
-			raise
+			os.system(self.BACKUPPLAY + ' error in text to speech')
 
 	def __del__(self):
 		def _silentremove(filename):
@@ -346,6 +348,8 @@ class Conversation(object):
 		self._lang_code = lang_code
 		self._tts = TTS(lang_code)
 		self._stt = STT(lang_code, api_key, sphinx_hmm, sphinx_lm, sphinx_dic, callback)
+		# conversation context to be used by modules to persist information
+		self.context = {}
 
 	@property
 	def lang_code(self):
