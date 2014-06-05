@@ -10,8 +10,7 @@ Quickstart (OSX)
 
 - Install [sox](http://sox.sourceforge.net/))
 
-	
-	brew install sox
+		brew install sox
 
 
 - Install [portaudio](http://www.portaudio.com)
@@ -20,41 +19,41 @@ Quickstart (OSX)
 
 - Install PyAudio
 
-	pip install PyAudio
+		pip install PyAudio
 
 - Install [flac](http://xiph.org/flac/))  
 
-	brew install flac
+		brew install flac
 
 - Clone this
 
-	git clone https://github.com/fopina/voice-control-goof
+		git clone https://github.com/fopina/voice-control-goof
 
 - Copy config.py.example to config.py
 
-	cd voice-control-goof
-	cp config.py.example config.py
+		cd voice-control-goof
+		cp config.py.example config.py
 
 - Goof!
 
-	skmac:voice-control-goof fopina$ p echo_test.py 
-	please speak into the microphone
-	speech to text...
-	hello world (confidence: 0.97335243)
+		skmac:voice-control-goof fopina$ p echo_test.py 
+		please speak into the microphone
+		speech to text...
+		hello world (confidence: 0.97335243)
 
-	Winner: hello world
+		Winner: hello world
 
-	text to speech...
-	please speak into the microphone
-	speech to text...
-	please speak into the microphone
-	speech to text...
-	how are you (confidence: 0.95447284)
-	are you
+		text to speech...
+		please speak into the microphone
+		speech to text...
+		please speak into the microphone
+		speech to text...
+		how are you (confidence: 0.95447284)
+		are you
 
-	Winner: how are you
+		Winner: how are you
 
-	text to speech...
+		text to speech...
 
 
 Dependencies
