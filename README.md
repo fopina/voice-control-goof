@@ -8,31 +8,27 @@ Quickstart (OSX)
 
 - Install [Homebrew](http://brew.sh)
 
-- Install [sox](http://sox.sourceforge.net/)
+- Install [sox](http://sox.sourceforge.net/), [portaudio](http://www.portaudio.com), [flac](http://xiph.org/flac/) and [pocketsphinx](http://cmusphinx.sourceforge.net)
 
 		brew install sox
-
-
-- Install [portaudio](http://www.portaudio.com)
-
 		brew install portaudio
+		brew install flac
+		brew install cmu-pocketsphinx
 
 - Install PyAudio
 
 		pip install PyAudio
 
-- Install [flac](http://xiph.org/flac/)
-
-		brew install flac
-
 - Clone this
 
 		git clone https://github.com/fopina/voice-control-goof
 
-- Copy config.py.example to config.py
+- Copy config.py.example to config.py and download [Jasper](http://jasperproject.github.io/) language model and dictionary
 
 		cd voice-control-goof
 		cp config.py.example config.py
+		curl -O https://raw.githubusercontent.com/jasperproject/jasper-client/master/client/languagemodel_persona.lm
+		curl -O https://raw.githubusercontent.com/jasperproject/jasper-client/master/client/dictionary_persona.dic
 
 - Goof!
 
