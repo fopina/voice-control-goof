@@ -343,8 +343,23 @@ class TTS(object):
 
 class Conversation(object):
 	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None):
+		self._lang_code = lang_code
 		self._tts = TTS(lang_code)
 		self._stt = STT(lang_code, api_key, sphinx_hmm, sphinx_lm, sphinx_dic, callback)
+
+	@property
+	def lang_code(self):
+		return self._lang_code
+
+	@lang_code.setter
+	def lang_code(self, value):
+		self._lang_code = value
+		self._tts.lang_code = value
+		self._stt.lang_code = value
+
+	@lang_code.deleter
+	def lang_code(self):
+		del self._lang_code
 
 	def listen(self, use_google = False):
 		return self._stt.listen(use_google)
@@ -354,3 +369,13 @@ class Conversation(object):
 
 	def calculate_silence(self, seconds = 5):
 		return self._stt.calculate_silence(seconds)
+
+class ConversationWithoutAudio(Conversation):
+	def listen(self, use_google = False):
+		return raw_input()
+
+	def say(self, text):
+		return text
+
+	def calculate_silence(self, seconds = 5):
+		return 0
