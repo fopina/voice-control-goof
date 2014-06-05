@@ -2,7 +2,7 @@
 
 from voicecontrol.brain import Brain
 from voicecontrol.ttsstt import Conversation
-from voicecontrol.ttsstt import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING
+from voicecontrol.ttsstt import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING, STATUS_LISTENED, STATUS_SAID
 
 try:
 	from config import API_KEY, DEFAULT_LOCALE
@@ -12,13 +12,17 @@ except:
 	raise Exception('config.py not found, please copy config.py.example to config.py')
 
 
-def update_status(status):
+def update_status(status, value = None):
 	if status == STATUS_WAITING:
 		print "please speak into the microphone"
 	elif status == STATUS_LISTENING:
 		print "Listening..."
 	elif status == STATUS_PROCESSING:
 		print "speech to text..."
+	elif status == STATUS_LISTENED:
+		print "You said:", value
+	elif status == STATUS_SAID:
+		print "I said:", value
 
 def main():
 	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
@@ -34,8 +38,6 @@ def main():
 		while 1:
 			reply = conversation.listen()
 
-			print 'You said:',reply
-
 			if reply.find(SPHINX_TRIGGER) < 0:
 				continue
 			
@@ -44,12 +46,10 @@ def main():
 			else:
 				reply = 'Yes?'
 
-			print 'Reply:', reply
 			conversation.say(reply)
 
 			print
 			reply = conversation.listen(use_google = True)
-			print 'You said:',reply
 			
 			if not reply:
 				if DEFAULT_LOCALE[:2] == 'pt':
@@ -57,18 +57,13 @@ def main():
 				else:
 					reply = 'What?'
 
+				conversation.say(reply)
+				continue
+
 			reply = brain.process(reply)
 
-			if not reply:
-				if DEFAULT_LOCALE[:2] == 'pt':
-					reply = 'Desculpa'
-				else:
-					reply = 'Sorry'
-
-			print
-			print 'text to speech...'
-			print 'Reply:', reply
-			conversation.say(reply)
+			if reply:
+				conversation.say(reply)
 
 	except KeyboardInterrupt:
 		print

@@ -25,6 +25,8 @@ except:
 STATUS_WAITING = 1
 STATUS_LISTENING = 2
 STATUS_PROCESSING = 3
+STATUS_LISTENED = 4
+STATUS_SAID = 5
 
 class STT(object):
 	# google speech v2 api endpoint
@@ -284,9 +286,9 @@ class STT(object):
 			results = self.stt_sphinx(self._wavfile)
 		return results
 
-	def notify_status(self, status):
+	def notify_status(self, status, val = None):
 		if not self.statuscb : return
-		self.statuscb(status)
+		self.statuscb(status, val)
 
 	def __del__(self):
 		def _silentremove(filename):
@@ -366,9 +368,12 @@ class Conversation(object):
 		del self._lang_code
 
 	def listen(self, use_google = False):
-		return self._stt.listen(use_google)
+		val = self._stt.listen(use_google)
+		self._stt.notify_status(STATUS_LISTENED, val)
+		return val
 
 	def say(self, text):
+		self._stt.notify_status(STATUS_SAID, text)
 		self._tts.read_out_loud(text)
 
 	def calculate_silence(self, seconds = 5):

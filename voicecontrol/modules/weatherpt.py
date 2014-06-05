@@ -138,13 +138,11 @@ def process_input(conversation, input):
 		temp_min = wdata['main']['temp_min']
 		temp_max = wdata['main']['temp_max']
 		condition = wdata['weather']
-		
-	result = ''
 
 	if temp_current:
-		result += 'Temperatura actual de %s graus.' % temp_current
+		conversation.say('Temperatura actual de %s graus.' % temp_current)
 
-	result += 'Prevê-se para %s temperatura mínima de %s e máxima de %s.' % (day, temp_min, temp_max)
+	conversation.say('Prevê-se para %s temperatura mínima de %s e máxima de %s.' % (day, temp_min, temp_max))
 
 	desc = []
 	if condition:
@@ -153,9 +151,9 @@ def process_input(conversation, input):
 				desc.append(WEATHER_CODES[entry['id']])
 
 	if desc:
-		result += ' Probabilidades de ' + ' e '.join(desc)
+		conversation.say('Probabilidades de ' + ' e '.join(desc))
 		
-	return result
+	return None
 
 def check_weather(city, country, units = 'metric'):
 	url = 'http://api.openweathermap.org/data/2.5/weather?q=%s,%s&units=%s' % (city, country, units)
