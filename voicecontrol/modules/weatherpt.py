@@ -88,7 +88,7 @@ def week_day(day_name, weekday):
 	current_weekday = datetime.now().isoweekday()
 	diff = (weekday - 1 - current_weekday) % 7 + 1
 
-	if weekday == 1:
+	if weekday <= 2:
 		next_name = 'próximo ' + day_name
 	else:
 		next_name = 'próxima ' + day_name
