@@ -87,8 +87,7 @@ def add_day(day_name, days):
 def week_day(day_name, weekday):
 	current_weekday = datetime.now().isoweekday()
 	diff = (weekday - 1 - current_weekday) % 7 + 1
-
-	if weekday <= 2:
+	if weekday <= 1:
 		next_name = 'próximo ' + day_name
 	else:
 		next_name = 'próxima ' + day_name
@@ -97,13 +96,13 @@ def week_day(day_name, weekday):
 
 named_days = {
 	('amanhã', add_day, 1),
-	('domingo', week_day, 1),
-	('segunda', week_day, 2),
-	('terça', week_day, 3),
-	('quarta', week_day, 4),
-	('quinta', week_day, 5),
-	('sexta', week_day, 6),
-	('sábado', week_day, 7),
+	('domingo', week_day, 0),
+	('segunda', week_day, 1),
+	('terça', week_day, 2),
+	('quarta', week_day, 3),
+	('quinta', week_day, 4),
+	('sexta', week_day, 5),
+	('sábado', week_day, 6),
 }
 
 def valid_input(conversation, input):
@@ -126,7 +125,7 @@ def process_input(conversation, input):
 	if 'depois' in input:
 		future_day += 1
 		day = 'depois de ' + day
-
+	
 	if future_day:
 		wdata = check_forecast('Porto', 'PT', future_day + 1)['list'][-1]
 		temp_min = wdata['temp']['min']
