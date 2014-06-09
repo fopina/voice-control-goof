@@ -17,7 +17,7 @@ DEFAULT_LOCALE = 'en-US'
 ########################################################################
 
 # the default pocketsphinx en_US accoustic model
-SPHINX_HMM = '/usr/local/Cellar/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k/'
+SPHINX_HMM = '/usr/local/Cellar/cmu-pocketsphinx/0.8/share/pocketsphinx/model/hmm/en_US/hub4wsj_sc_8k/'
 
 # for quick usage, you can always use JASPER "persona"
 # http://jasperproject.github.io/

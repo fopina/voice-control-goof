@@ -1,7 +1,7 @@
 voice-control-goof
 ==========
 Simple library to goof around with voice control using Google unofficial speech-to-text and text-to-speech APIs.  
-A somewhat configurable module structure add functionality!  
+A somewhat configurable module structure to add functionality!  
 
 Quickstart (OSX)
 -----
