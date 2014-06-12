@@ -106,8 +106,9 @@ named_days = {
 }
 
 def valid_input(conversation, input):
-	if 'tempo' in input : return True
-	if 'temperatura' in input : return True
+	if conversation.lang_code == 'pt-PT':
+		if 'tempo' in input : return True
+		if 'temperatura' in input : return True
 	return False
 
 def process_input(conversation, input):

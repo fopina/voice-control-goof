@@ -7,6 +7,9 @@ try:
 except:
 	raise Exception('config.py not found, please copy config.py.example to config.py')
 
+from main import _
+import main as mm
+
 def update_status(status, value = None):
 	if status == STATUS_WAITING:
 		print
@@ -29,6 +32,7 @@ def silence(conversation, seconds = 2):
 
 def main():
 	conversation = Conversation(DEFAULT_LOCALE, API_KEY, callback = update_status)
+	mm.conversation = conversation
 	silence(conversation)
 
 	try:
@@ -36,11 +40,7 @@ def main():
 			reply = conversation.listen()
 
 			if not reply:
-				if DEFAULT_LOCALE[:2] == 'pt':
-					reply = 'Quê?'
-				else:
-					reply = 'What?'
-				conversation.say(reply, use_cache = True)
+				conversation.say(_('What?'), use_cache = True)
 			else:
 				conversation.say(reply)
 	except KeyboardInterrupt:

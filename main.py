@@ -12,6 +12,26 @@ except:
 	raise Exception('config.py not found, please copy config.py.example to config.py')
 
 
+#########################
+# yeah, TODO: use gettext
+
+conversation = None
+I18N_DATA = {
+	'pt-PT': {
+		'Yes?': 'Sim?',
+		'What?': 'Quê?',
+	},
+}
+
+def _(text):
+	if conversation:
+		if conversation.lang_code in I18N_DATA:
+			lang = conversation.lang_code
+			text = I18N_DATA[lang].get(text, text)
+	return text
+#########################
+
+
 def update_status(status, value = None):
 	if status == STATUS_WAITING:
 		print "please speak into the microphone"
@@ -25,6 +45,7 @@ def update_status(status, value = None):
 		print "I said:", value
 
 def main():
+	global conversation
 	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
 	brain = Brain(conversation, MODULES)
 
@@ -45,23 +66,13 @@ def main():
 			if reply.find(SPHINX_TRIGGER) < 0:
 				continue
 			
-			if conversation.lang_code[:2] == 'pt':
-				reply = 'Sim?'
-			else:
-				reply = 'Yes?'
-
-			conversation.say(reply, use_cache = True)
+			conversation.say(_('Yes?'), use_cache = True)
 
 			print
 			reply = conversation.listen(use_google = True)
 			
 			if not reply:
-				if conversation.lang_code[:2] == 'pt':
-					reply = 'Quê?'
-				else:
-					reply = 'What?'
-
-				conversation.say(reply, use_cache = True)
+				conversation.say(_('What?'), use_cache = True)
 				continue
 
 			reply = brain.process(reply)

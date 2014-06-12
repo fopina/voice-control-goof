@@ -8,9 +8,12 @@ except:
 	raise Exception('config.py not found, please copy config.py.example to config.py')
 
 from echo_test import update_status, silence
+from main import _
+import main as mm
 
 def main():
 	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
+	mm.conversation = conversation
 	silence(conversation)
 
 	try:
@@ -19,21 +22,11 @@ def main():
 			if reply.find(SPHINX_TRIGGER) < 0:
 				continue
 			
-			if DEFAULT_LOCALE[:2] == 'pt':
-				reply = 'Sim?'
-			else:
-				reply = 'Yes?'
-
-			conversation.say(reply, use_cache = True)
-
+			conversation.say(_('Yes?'), use_cache = True)
 			reply = conversation.listen(use_google = True)
 			
 			if not reply:
-				if DEFAULT_LOCALE[:2] == 'pt':
-					reply = 'Quê?'
-				else:
-					reply = 'What?'
-				conversation.say(reply, use_cache = True)
+				conversation.say(_('What?'), use_cache = True)
 			else:
 				conversation.say(reply)
 
