@@ -33,3 +33,18 @@ SPHINX_TRIGGER = 'JASPER'
 ########################################################################
 
 MODULES = [ 'weatherpt', 'lang_change' ]
+
+
+########################################################################
+# VOIP settings                                                        #
+########################################################################
+
+PJSIP_USERNAME = 'myuser'
+PJSIP_PASSWORD = 'mypassword'
+PJSIP_REGISTAR = 'voip.myserver.com'
+
+# if no proxy required, leave blank
+PJSIP_PROXY = 'proxy.voip.myserver.com'
+
+# change if required
+PJSIP_ID = PJSIP_USERNAME + '@' + PJSIP_REGISTAR
