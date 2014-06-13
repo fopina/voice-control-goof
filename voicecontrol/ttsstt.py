@@ -28,14 +28,15 @@ STATUS_PROCESSING = 3
 STATUS_LISTENED = 4
 STATUS_SAID = 5
 
+
+# binaries to help
+SOX_CONV = 'sox %s -b 16 %s rate 16k'
+FLAC_CONV = 'flac -f'  # We need a WAV to FLAC converter. flac is available
+					   # on Linux
+
 class STT(object):
 	# google speech v2 api endpoint
 	GOOGLE_SPEECH_URL = 'https://www.google.com/speech-api/v2/recognize?output=json&lang=%s&key=%s'
-
-	FLAC_CONV = 'flac -f'  # We need a WAV to FLAC converter. flac is available
-						   # on Linux
-
-	SOX_CONV = 'sox %s -b 16 %s rate 16k'
 
 	# pyaudio record settings
 	THRESHOLD = 500
@@ -199,7 +200,7 @@ class STT(object):
 		wf.writeframes(data)
 		wf.close()
 
-	def stt_google(self, audio_fname):
+	def stt_google(self, audio_fname, convert_to_flac = True):
 		"""
 		Sends audio file (audio_fname) to Google's text to speech 
 		service and returns service's response.
@@ -217,17 +218,24 @@ class STT(object):
 			if winner : winner = winner.encode('utf-8')
 			return winner
 
-		if os.system('%s -o %s %s 2>/dev/null' % (self.FLAC_CONV, self._flacfile, audio_fname)):
-			raise Exception('%s -o %s %s 2>/dev/null' % (self.FLAC_CONV, self._flacfile, audio_fname))
-		filename = self._flacfile
+		if convert_to_flac:
+			if os.system('%s -o %s %s 2>/dev/null' % (FLAC_CONV, self._flacfile, audio_fname)):
+				raise Exception('%s -o %s %s 2>/dev/null' % (FLAC_CONV, self._flacfile, audio_fname))
+			filename = self._flacfile
+		else:
+			filename = audio_fname
 
 		f = open(filename, 'rb')
 		flac_cont = f.read()
 		f.close()
 
 		# Headers. A common Chromium (Linux) User-Agent
-		hrs = {"User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16.0.912.63 Safari/535.7", 
-			   'Content-type': 'audio/x-flac; rate=%s' % self.RATE}
+		hrs = {}
+		hrs['User-Agent'] = 'Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16.0.912.63 Safari/535.7'
+		if convert_to_flac:
+			hrs['Content-type'] = 'audio/x-flac; rate=%s' % self.RATE
+		else:
+			hrs['Content-type'] = 'audio/l16; rate=%s' % self.RATE
 
 		req = urllib2.Request(self.GOOGLE_SPEECH_URL %  (self.lang_code, self.api_key), data=flac_cont, headers=hrs)
 		
@@ -257,8 +265,8 @@ class STT(object):
 			raise Exception('pocketsphinx not initialized')
 
 		if self.RATE not in (8000,16000):
-			if os.system(self.SOX_CONV % (filename, self._ratefile)):
-				raise Exception(self.SOX_CONV % (filename, self._ratefile))
+			if os.system(SOX_CONV % (filename, self._ratefile)):
+				raise Exception(SOX_CONV % (filename, self._ratefile))
 			filename = self._ratefile
 
 		wavFile = file(filename, 'rb')
@@ -305,13 +313,26 @@ class TTS(object):
 
 	def __init__(self, lang_code):
 		self.lang_code = lang_code
-		fd, mp3file = tempfile.mkstemp(suffix = '.mp3')
+		fd, sndfile = tempfile.mkstemp(suffix = '.mp3')
 		os.close(fd)
-		self._mp3file = mp3file
+		self._mp3file = sndfile
+		fd, sndfile = tempfile.mkstemp(suffix = '.wav')
+		os.close(fd)
+		self._wavfile = sndfile
 		self._cachedMP3 = {}
 
 
 	def read_out_loud(self, text, use_cache = False):
+		try:
+			filename = self.text_to_audio_file(text, use_cache)
+			os.system(self.MP3_PLAY + ' ' + filename)
+		except KeyboardInterrupt:
+			raise
+		except:
+			print "Unexpected error:", sys.exc_info()[0]
+			os.system(self.BACKUPPLAY + ' error in text to speech')
+
+	def text_to_audio_file(self, text, use_cache = False, convert_to_wav = False):
 		'''
 		This will use Google for text-to-speech.
 
@@ -321,8 +342,7 @@ class TTS(object):
 		'''
 
 		if use_cache and (text in self._cachedMP3):
-			os.system(self.MP3_PLAY + ' ' + self._cachedMP3[text])
-			return
+			return self._cachedMP3[text]
 
 		hrs = {
 			"User-Agent": "Mozilla/5.0 (X11; Linux i686) AppleWebKit/535.7 (KHTML, like Gecko) Chrome/16.0.912.63 Safari/535.7"
@@ -336,7 +356,7 @@ class TTS(object):
 
 			filename = self._mp3file
 
-			if use_cache:
+			if (use_cache) and (not convert_to_wav):
 				fd, cachefile = tempfile.mkstemp(suffix = '.mp3')
 				os.close(fd)
 				filename = cachefile
@@ -345,14 +365,25 @@ class TTS(object):
 			outfd = open(filename,'wb')
 			outfd.write(sound_data)
 			outfd.close()
-			os.system(self.MP3_PLAY + ' ' + filename)
-		except KeyboardInterrupt:
-			raise
-		except:
-			print "Couldn't parse service response"
-			print "Unexpected error:", sys.exc_info()[0]
-			os.system(self.BACKUPPLAY + ' error in text to speech')
 
+			if convert_to_wav:
+				wavfile = self._wavfile
+
+				if use_cache:
+					fd, wavfile = tempfile.mkstemp(suffix = '.wav')
+					os.close(fd)
+
+				os.system(SOX_CONV % (filename, wavfile))
+
+				if use_cache:
+					_silentremove(filename)
+					self._cachedMP3[text] = wavfile
+
+				filename = wavfile
+
+			return filename
+		except:
+			raise
 	
 	def clean_cache(self):
 		for filename in self._cachedMP3.values():
