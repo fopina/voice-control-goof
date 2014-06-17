@@ -61,23 +61,25 @@ def main():
 
 	try:
 		while 1:
-			reply = conversation.listen()
+			input = conversation.listen()
 
-			if reply.find(SPHINX_TRIGGER) < 0:
+			if input.find(SPHINX_TRIGGER) < 0:
 				continue
 			
 			conversation.say(_('Yes?'), use_cache = True)
 
 			print
-			reply = conversation.listen(use_google = True)
+			input = conversation.listen(use_google = True)
 			
-			if not reply:
+			if not input:
 				conversation.say(_('What?'), use_cache = True)
 				continue
 
-			reply = brain.process(reply)
+			(done, reply) = brain.process(input)
 
-			if reply:
+			if not done:
+				conversation.say(_('What?'), use_cache = True)
+			elif reply:
 				conversation.say(reply)
 
 	except KeyboardInterrupt:

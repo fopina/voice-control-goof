@@ -16,18 +16,17 @@ def valid_input(conversation, input):
 
 def process_input(conversation, input):
 	lang = conversation.lang_code[:2]
+	processed = False
 
 	if lang == 'en':
 		if 'portuguese' in input:
 			conversation.lang_code = 'pt-PT'
 			conversation.say('Ok, falemos como o Camões')
-		else:
-			conversation.say('Sorry')
+			processed = True
 	elif lang == 'pt':
 		if 'inglês' in  input:
 			conversation.lang_code = 'en-US'
 			conversation.say('English we are now.')
-		else:
-			conversation.say('Desculpa')
+			processed = True
 
-	return None
+	return (processed, None)

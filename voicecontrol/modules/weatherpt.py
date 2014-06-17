@@ -112,6 +112,7 @@ def valid_input(conversation, input):
 	return False
 
 def process_input(conversation, input):
+	processed = False
 	future_day = 0
 	temp_current = None
 	day = None
@@ -152,8 +153,9 @@ def process_input(conversation, input):
 
 	if desc:
 		conversation.say('Probabilidades de ' + ' e '.join(desc))
-		
-	return None
+	
+	processed = True
+	return (processed,None)
 
 def check_weather(city, country, units = 'metric'):
 	url = 'http://api.openweathermap.org/data/2.5/weather?q=%s,%s&units=%s' % (city, country, units)

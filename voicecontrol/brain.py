@@ -18,13 +18,14 @@ class Brain(object):
 
 	def process(self, text):
 		reply = None
+		processed = False
 
 		# text from STT does not have any punctuation
 		words = text.lower().split(' ') 
 
 		for module in self.modules:
 			if module.valid_input(self.conversation, words):
-				reply = module.process_input(self.conversation, words)
+				(processed,reply) = module.process_input(self.conversation, words)
 				break
 
-		return reply
+		return (processed,reply)

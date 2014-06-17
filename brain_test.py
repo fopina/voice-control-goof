@@ -27,8 +27,10 @@ def main():
 	else:
 		input = conversation.listen()
 	print 'Output:',
-	output = brain.process(input)
-	if output:
+	(done, output) = brain.process(input)
+	if not done:
+		print 'Failed to process'
+	elif output:
 		print output
 
 if __name__ == '__main__':
