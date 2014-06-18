@@ -4,6 +4,8 @@ import sys
 import pjsua as pj
 import time
 import wave
+import threading
+import math
 
 from voicecontrol.brain import Brain
 from voicecontrol.ttsstt import Conversation
@@ -30,6 +32,8 @@ I18N_DATA = {
 		'Yes?': 'Sim?',
 		'What?': 'Quê?',
 		'Hello': 'Olá',
+		'One moment': 'Um momento',
+		'Hello. Press any key to start talking and press any key again once you are done': 'Olá. Pressiona qualquer tecla para começar a falar e volta a pressionar quando acabares.',
 	},
 }
 
@@ -41,21 +45,50 @@ def _(text):
 	return text
 #########################
 
-def update_status(status, value = None):
-	if status == STATUS_WAITING:
-		print "please speak into the microphone"
-	elif status == STATUS_LISTENING:
-		print "Listening..."
-	elif status == STATUS_PROCESSING:
-		print "speech to text..."
-	elif status == STATUS_LISTENED:
-		print "You said:", value
-	elif status == STATUS_SAID:
-		print "I said:", value
+class HelloThread(threading.Thread):
+	def __init__(self, t, *args):
+		self._real_target = t
+		threading.Thread.__init__(self, target=self._delay, args=args)
+		self._cancel = threading.Event()
+		self.start()
 
-def log_cb(level, str, len):
-	if level <= LOG_LEVEL:
-		print level, str,
+	def _delay(self, *args):
+		pj.Lib.instance().thread_register('delaysay')
+		time.sleep(2)
+		if not self._cancel.isSet():
+			self._real_target(args[0])
+
+	def cancel(self):
+		self._cancel.set()
+
+class BrainThread(threading.Thread):
+	def __init__(self, brain):
+		threading.Thread.__init__(self, target=self.main)
+		self._brain = brain
+		self._stop = threading.Event()
+		self.start()
+
+	def main(self):
+		pj.Lib.instance().thread_register('braindead')
+		while not self._stop.isSet():
+			input = self._brain.conversation.listen()
+			if self._stop.isSet():
+				break
+			if input:
+				(done, reply) = self._brain.process(input)
+
+				if not done:
+					self._brain.conversation.say(_('What?'), use_cache = True)
+				elif reply:
+					self._brain.conversation.say(reply)
+
+			else:
+				self._brain.conversation.say(_('What?'), use_cache = True)
+
+	def stop(self):
+		self._stop.set()
+		self._brain.conversation.listen_shutdown()
+
 
 class ConversationVOIP(Conversation):
 	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None):
@@ -66,14 +99,78 @@ class ConversationVOIP(Conversation):
 		self._stt.RATE = 16000
 		self.call = None
 		self._player = None
+		self._recorder = None
+		self._listen_start_lock = threading.Lock()
+		self._listen_stop_lock = threading.Lock()
+		self._listening = False
+		self._shutdown = False
 	
 	def listen(self, use_google = False):
-		if not self.call:
-			return None
 		# always use_google
-		val = self._stt.stt_google(self.sttfile, convert_to_flac = False)
-		self._stt.notify_status(STATUS_LISTENED, val)
-		return val
+
+		if not self.call:
+			return
+
+		# lock the locks (to be released by listen_start and listen_stop)
+		self._listen_stop_lock.acquire()
+		if not self._listening: # dont pre-lock if already listening
+			self._listen_start_lock.acquire()
+
+		# again, now it will hang...
+		with self._listen_start_lock:
+			if self._shutdown : return None
+
+			call_slot = self.call.info().conf_slot
+			lib = pj.Lib.instance()
+
+			self._recorder = lib.create_recorder(self.sttfile)
+			recorder_slot = lib.recorder_get_slot(self._recorder)
+			lib.conf_connect(call_slot, recorder_slot)
+		
+			with self._listen_stop_lock:
+				if self._shutdown : return None
+
+				self.say(_('One moment'), use_cache = True)
+
+				lib.conf_disconnect(recorder_slot, call_slot)
+				lib.recorder_destroy(self._recorder)
+				self._recorder = None
+
+				val = self._stt.stt_google(self.sttfile)
+				self._stt.notify_status(STATUS_LISTENED, val)
+				return val
+
+	def listen_start(self, use_google = False):
+		self._listening = True
+		try:
+			self._listen_start_lock.release()
+		except:
+			print 'start not locked!!!'
+
+	def listen_stop(self, use_google = False):
+		self._listening = False
+		try:
+			self._listen_stop_lock.release()
+		except:
+			print 'stop not locked!!!'
+
+	def listen_shutdown(self):
+		self._shutdown = True
+		try:
+			self._listen_stop_lock.release()
+		except:
+			pass
+		try:
+			self._listen_start_lock.release()
+		except:
+			pass
+
+	def listen_reset(self):
+		self.call = None
+		self._player = None
+		self._recorder = None
+		self._listening = False
+		self._shutdown = False
 
 	def say(self, text, use_cache = False):
 		if not self.call:
@@ -81,6 +178,9 @@ class ConversationVOIP(Conversation):
 
 		self._stt.notify_status(STATUS_SAID, text)
 		filename = self._tts.text_to_audio_file(text, use_cache, convert_to_wav = True)
+
+		if self._listening or self._shutdown:
+			return
 
 		call_slot = self.call.info().conf_slot
 		lib = pj.Lib.instance()
@@ -99,7 +199,18 @@ class ConversationVOIP(Conversation):
 		self._player = lib.create_player(filename)
 		player_slot = lib.player_get_slot(self._player)
 		lib.conf_connect(player_slot, call_slot)
-		time.sleep(duration)
+		# split into blocks of 0.2s
+		sleep_blocks = int(math.ceil(duration / 0.2))
+		for i in xrange(sleep_blocks):
+			if self._listening or self._shutdown:
+				break
+			time.sleep(0.2)
+
+		if (self._player != None) and (not self._shutdown):
+			player_slot = lib.player_get_slot(self._player)
+			lib.conf_disconnect(player_slot, call_slot)
+			lib.player_destroy(self._player)
+			self._player = None
 
 	def calculate_silence(self, seconds = 5):
 		return 0
@@ -109,10 +220,12 @@ class MyCallCallback(pj.CallCallback):
 
 	def __init__(self, call=None):
 		pj.CallCallback.__init__(self, call)
-		self._state = -1
+		self._state = 0
 		self._player = None
 		self._recorder = None
 		self._last_said = None
+		self._hello_thread = None
+		self._brain_thread = None
 
 	# Notification when call state has changed
 	def on_state(self):
@@ -124,6 +237,10 @@ class MyCallCallback(pj.CallCallback):
 		
 		if self.call.info().state == pj.CallState.DISCONNECTED:
 			current_call = None
+			if self._hello_thread:
+				self._hello_thread.cancel()
+			if self._brain_thread:
+				self._brain_thread.stop()
 			conversation.call = current_call
 			print 'Current call is', current_call
 
@@ -133,36 +250,24 @@ class MyCallCallback(pj.CallCallback):
 			call_slot = self.call.info().conf_slot
 			# it seems that if no conf_connect is called, it hangs
 			pj.Lib.instance().conf_connect(call_slot, 0)
+			self._hello_thread = HelloThread(conversation.say, _('Hello. Press any key to start talking and press any key again once you are done'))
+			self._brain_thread = BrainThread(brain)
 
 	def on_dtmf_digit(self, digits):
 		# any digit triggers this
+		print 'State:', self._state, ' (', digits, ')'
+
 		call_slot = self.call.info().conf_slot
 		lib = pj.Lib.instance()
 
-		if self._recorder != None:
-			recorder_slot = lib.recorder_get_slot(self._recorder)
-			lib.conf_disconnect(recorder_slot, call_slot)
-			lib.recorder_destroy(self._recorder)
-			self._recorder = None
-			self._last_said = conversation.listen()
-
+		if self._hello_thread:
+			self._hello_thread.cancel()
 
 		if self._state == 0:
-			if self._last_said:
-				reply = brain.process(self._last_said)
-
-				if reply:
-					conversation.say(reply)
-
-				self._last_said = None
-			else:
-				conversation.say(_('Hello'), use_cache = True)
-			
+			conversation.listen_start()
 		elif self._state == 1:
-			self._recorder = lib.create_recorder(conversation.sttfile)
-			recorder_slot = lib.recorder_get_slot(self._recorder)
-			lib.conf_connect(call_slot, recorder_slot)
-
+			conversation.listen_stop()
+			
 		self._state = (self._state + 1) % 2
 		
 
@@ -182,6 +287,7 @@ class MyAccountCallback(pj.AccountCallback):
 		print "Incoming call from ", call.info().remote_uri
 
 		current_call = call
+		conversation.listen_reset()
 		conversation.call = current_call
 
 		call_cb = MyCallCallback(current_call)
@@ -212,8 +318,7 @@ def main():
 
 		acc = lib.create_account(acc_cfg, cb=MyAccountCallback())
 
-		my_sip_uri = "sip:" + transport.info().host + ":" + str(transport.info().port)
-
+		#my_sip_uri = "sip:" + transport.info().host + ":" + str(transport.info().port)
 
 		global conversation, brain
 		conversation = ConversationVOIP(DEFAULT_LOCALE, API_KEY, callback = update_status)
@@ -226,7 +331,7 @@ def main():
 		# Menu loop
 		while True:
 			print
-			print "My SIP URI is", my_sip_uri
+			print "My SIP URI is", acc_cfg.id
 			print "Menu:  h=hangup call, q=quit"
 
 			input = sys.stdin.readline().rstrip("\r\n")
@@ -251,6 +356,22 @@ def main():
 		print "Exception: " + str(e)
 		lib.destroy()
 		lib = None
+
+def update_status(status, value = None):
+	if status == STATUS_WAITING:
+		print "please speak into the microphone"
+	elif status == STATUS_LISTENING:
+		print "Listening..."
+	elif status == STATUS_PROCESSING:
+		print "speech to text..."
+	elif status == STATUS_LISTENED:
+		print "You said:", value
+	elif status == STATUS_SAID:
+		print "I said:", value
+
+def log_cb(level, str, len):
+	if level <= LOG_LEVEL:
+		print level, str,
 
 if __name__ == '__main__':
 	main()
