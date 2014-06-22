@@ -12,8 +12,8 @@ class Brain(object):
 				temp = importlib.import_module(package_prefix + module)
 				if hasattr(temp,'valid_input') and hasattr(temp,'process_input'):
 					self.modules.append(temp)
-			except:
-				pass
+			except Exception as e:
+				print 'Failed to load module', module, '(', repr(e),')'
 
 
 	def process(self, text):

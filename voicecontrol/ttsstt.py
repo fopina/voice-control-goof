@@ -440,7 +440,7 @@ class ConversationWithoutAudio(Conversation):
 		return 0
 
 def _silentremove(filename):
-			try:
-				os.remove(filename)
-			except OSError:
-				pass
+	try:
+		os.remove(filename)
+	except OSError:
+		pass
