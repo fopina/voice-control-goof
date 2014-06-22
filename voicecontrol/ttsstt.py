@@ -12,11 +12,15 @@ import json
 import sys
 import tempfile
 
-# stupid bug
 try:
 	import pocketsphinx
 except:
-	import pocketsphinx
+	# stupid bug
+	try:
+		import pocketsphinx
+	except:
+		# ignore, exception raised later if sphinx is required
+		pass
 
 # Reference for API:
 # https://github.com/gillesdemey/google-speech-v2
@@ -57,6 +61,8 @@ class STT(object):
 		self._ratefile = wavfile + '.16k.wav'
 
 		if sphinx_lm and sphinx_hmm and sphinx_dic:
+			# to raise exception if not installed
+			import pocketsphinx
 			self.sphinx_rec = pocketsphinx.Decoder(hmm=sphinx_hmm, lm=sphinx_lm, dict=sphinx_dic, logfn = '/dev/null')
 		else:
 			self.sphinx_rec = None
