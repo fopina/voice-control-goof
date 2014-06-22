@@ -247,9 +247,6 @@ class MyCallCallback(pj.CallCallback):
 	# Notification when call's media state has changed.
 	def on_media_state(self):
 		if self.call.info().media_state == pj.MediaState.ACTIVE:
-			call_slot = self.call.info().conf_slot
-			# it seems that if no conf_connect is called, it hangs
-			pj.Lib.instance().conf_connect(call_slot, 0)
 			self._hello_thread = HelloThread(conversation.say, _('Hello. Press any key to start talking and press any key again once you are done'))
 			self._brain_thread = BrainThread(brain)
 
@@ -301,6 +298,7 @@ def main():
 
 	try:
 		lib.init(log_cfg = pj.LogConfig(level=LOG_LEVEL, callback=log_cb))
+		lib.set_null_snd_dev()
 
 		transport = lib.create_transport(pj.TransportType.UDP, 
 										 pj.TransportConfig(0))
