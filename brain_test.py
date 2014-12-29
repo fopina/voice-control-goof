@@ -19,19 +19,30 @@ def main():
 	for m in brain.modules:
 		print m.__name__
 
-	print
-	print 'Input: ',
-	if len(sys.argv) > 1:
-		input = ' '.join(sys.argv[1:])
-		print input
-	else:
-		input = conversation.listen()
-	print 'Output:',
-	(done, output) = brain.process(input)
-	if not done:
-		print 'Failed to process'
-	elif output:
-		print output
+	try:
+		while True:
+			print
+			print 'Input: ',
+			if len(sys.argv) > 1:
+				input = ' '.join(sys.argv[1:])
+				print input
+			else:
+				input = conversation.listen()
+			if not input:
+				break
+			print 'Output:',
+			(done, output) = brain.process(input)
+			if not done:
+				print 'Failed to process'
+			elif output:
+				print output
+
+			if len(sys.argv) > 1:
+				break
+	except KeyboardInterrupt:
+		print
+
+	print 'Bye Bye'
 
 if __name__ == '__main__':
 	main()

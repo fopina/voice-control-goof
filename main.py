@@ -8,6 +8,7 @@ try:
 	from config import API_KEY, DEFAULT_LOCALE
 	from config import SPHINX_LM, SPHINX_DIC, SPHINX_HMM, SPHINX_TRIGGER
 	from config import MODULES
+	from config import MP3_PLAY, OFFLINETTS
 except:
 	raise Exception('config.py not found, please copy config.py.example to config.py')
 
@@ -46,7 +47,7 @@ def update_status(status, value = None):
 
 def main():
 	global conversation
-	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status)
+	conversation = Conversation(DEFAULT_LOCALE, API_KEY, SPHINX_HMM, SPHINX_LM, SPHINX_DIC, update_status, mp3player = MP3_PLAY, offline_tts = OFFLINETTS)
 	brain = Brain(conversation, MODULES)
 
 	print 'Modules loaded:'

@@ -312,12 +312,8 @@ class STT(object):
 class TTS(object):
 	# google speech v2 api endpoint
 	GOOGLE_TRANSLATE_URL = 'http://translate.google.com/translate_tts?tl=%s&q=%s'
-	# using sox on OSX, replace with your own
-	MP3_PLAY = 'play -q'
-	# using 'say' as it's part of OSX, change to 'espeak' in Linux, for instance
-	BACKUPPLAY = 'say'
 
-	def __init__(self, lang_code):
+	def __init__(self, lang_code, mp3player = 'play -q', offline_tts = 'say'):
 		self.lang_code = lang_code
 		fd, sndfile = tempfile.mkstemp(suffix = '.mp3')
 		os.close(fd)
@@ -326,17 +322,19 @@ class TTS(object):
 		os.close(fd)
 		self._wavfile = sndfile
 		self._cachedMP3 = {}
+		self._mp3player = mp3player
+		self._offline_tts = offline_tts
 
 
 	def read_out_loud(self, text, use_cache = False):
 		try:
 			filename = self.text_to_audio_file(text, use_cache)
-			os.system(self.MP3_PLAY + ' ' + filename)
+			os.system(self._mp3player + ' ' + filename)
 		except KeyboardInterrupt:
 			raise
 		except:
 			print "Unexpected error:", sys.exc_info()[0]
-			os.system(self.BACKUPPLAY + ' error in text to speech')
+			os.system(self._offline_tts + ' error in text to speech')
 
 	def text_to_audio_file(self, text, use_cache = False, convert_to_wav = False):
 		'''
@@ -402,9 +400,9 @@ class TTS(object):
 		self.clean_cache()
 
 class Conversation(object):
-	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None):
+	def __init__(self, lang_code, api_key, sphinx_hmm = None, sphinx_lm = None, sphinx_dic = None, callback = None, mp3player = None, offline_tts = None):
 		self._lang_code = lang_code
-		self._tts = TTS(lang_code)
+		self._tts = TTS(lang_code, mp3player, offline_tts)
 		self._stt = STT(lang_code, api_key, sphinx_hmm, sphinx_lm, sphinx_dic, callback)
 		# conversation context to be used by modules to persist information
 		self.context = {}

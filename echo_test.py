@@ -4,6 +4,7 @@ from voicecontrol.ttsstt import Conversation
 from voicecontrol.ttsstt import STATUS_WAITING, STATUS_LISTENING, STATUS_PROCESSING, STATUS_LISTENED, STATUS_SAID
 try:
 	from config import API_KEY, DEFAULT_LOCALE
+	from config import MP3_PLAY, OFFLINETTS
 except:
 	raise Exception('config.py not found, please copy config.py.example to config.py')
 
@@ -31,7 +32,7 @@ def silence(conversation, seconds = 2):
 	print
 
 def main():
-	conversation = Conversation(DEFAULT_LOCALE, API_KEY, callback = update_status)
+	conversation = Conversation(DEFAULT_LOCALE, API_KEY, callback = update_status, mp3player = MP3_PLAY, offline_tts = OFFLINETTS)
 	mm.conversation = conversation
 	silence(conversation)
 

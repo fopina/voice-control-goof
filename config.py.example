@@ -29,10 +29,20 @@ SPHINX_DIC = 'dictionary_persona.dic'
 SPHINX_TRIGGER = 'JASPER'
 
 ########################################################################
+# Required applications                                                #
+########################################################################
+
+# mp3 player command line (example using sox in OSX)
+MP3_PLAY = 'play -q'
+
+# backup offline text-to-speech utility (example using say in OSX)
+OFFLINETTS = 'say'
+
+########################################################################
 # Brain modules                                                        #
 ########################################################################
 
-MODULES = [ 'weatherpt', 'lang_change' ]
+MODULES = [ 'weatherpt', 'lang_change', 'wolfram' ]
 
 
 ########################################################################
@@ -48,3 +58,11 @@ PJSIP_PROXY = 'proxy.voip.myserver.com'
 
 # change if required
 PJSIP_ID = PJSIP_USERNAME + '@' + PJSIP_REGISTAR
+
+
+########################################################################
+# module settings                                                      #
+########################################################################
+
+# wolframalpha API key used by wolfram module
+WOLFRAM_API_KEY = None
